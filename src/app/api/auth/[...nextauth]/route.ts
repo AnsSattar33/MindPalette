@@ -1,11 +1,11 @@
-import NextAuth from "next-auth";
+import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-import { PrismaAdapter } from "@auth/prisma-adapter";
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import prisma from "@/lib/prisma";
 import { compare } from "bcryptjs";
 
-const handler = NextAuth({
+export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   secret: process.env.NEXTAUTH_SECRET,
 
@@ -16,18 +16,8 @@ const handler = NextAuth({
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials, req) {
-        console.log("email and password = ", req.body)
-        if (
-          credentials?.email === process.env.ADMIN_EMAIL &&
-          credentials?.password === process.env.ADMIN_PASSWORD
-        ) {
-          return { id: "admin", email: credentials?.email };
-        }
-
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null;
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
@@ -38,8 +28,8 @@ const handler = NextAuth({
         const isValid = await compare(credentials.password, user.password);
         if (!isValid) return null;
 
-        return user
-      }
+        return { id: user.id, name: user.name, email: user.email, role: user.role };
+      },
     }),
 
     GoogleProvider({
@@ -50,8 +40,25 @@ const handler = NextAuth({
 
   session: { strategy: "jwt" },
   pages: {
-    signIn: "/auth/login", // custom login page
+    signIn: "/auth/login",
   },
-});
 
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = (user as any).role;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        (session.user as any).id = token.sub;
+        (session.user as any).role = (token as any).role;
+      }
+      return session;
+    },
+  },
+};
+
+const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };

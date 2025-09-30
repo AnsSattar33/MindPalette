@@ -46,7 +46,7 @@ export default function AuthLinks({ mobile }: Props) {
                         <Link href="/profile">Profile</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                        <Link href="/dashboard">Dashboard</Link>
+                        <Link href="/dashboard/overview">Dashboard</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => signOut()}>
                         Logout
