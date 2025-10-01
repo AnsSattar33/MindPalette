@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 const links = [
     { href: "/dashboard/overview", label: "Overview" },
     { href: "/dashboard/posts", label: "Posts" },
-    { href: "/dashboard/posts/new", label: "Create Post" },
+    { href: "/dashboard/createpost", label: "Create Post" },
     { href: "/dashboard/comments", label: "Comments" },
     { href: "/dashboard/users", label: "Users" }, // Admin only
 ];

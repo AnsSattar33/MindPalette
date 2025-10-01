@@ -1,129 +1,142 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
-export default function CreatePostPage() {
+import dynamic from "next/dynamic";
+
+const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), {
+    ssr: false,
+});
+interface Post {
+    id: string;
+    title: string;
+    content: string;
+    tags: string[];
+    published: boolean;
+}
+
+export default function PostsPage() {
     const { data: session, status } = useSession();
     const router = useRouter();
 
-    const [title, setTitle] = useState("");
-    const [content, setContent] = useState("");
-    const [tags, setTags] = useState("");
-    const [published, setPublished] = useState(false);
-    const [loading, setLoading] = useState(false);
+    const [posts, setPosts] = useState<Post[]>([]);
+    const [editingPostId, setEditingPostId] = useState<string | null>(null);
+    const [editorContent, setEditorContent] = useState<string>("");
+
+    useEffect(() => {
+        const fetchPosts = async () => {
+            const res = await fetch("/api/dashboard/posts/new");
+            const data = await res.json();
+            if (res.ok) {
+                setPosts(data.posts);
+            }
+        };
+        fetchPosts();
+    }, []);
 
     if (status === "loading") {
-        return (
-            <div className="flex min-h-screen items-center justify-center">
-                <p className="text-muted-foreground">Loading...</p>
-            </div>
-        );
+        return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
     }
-    console.log(session);
+
     if (!session || (session.user.role !== "admin" && session.user.role !== "writer")) {
         return (
-            <div className="flex min-h-screen items-center justify-center">
-                <p className="text-red-500 font-semibold">
-                    You are not authorized to create posts.
-                </p>
+            <div className="flex min-h-screen items-center justify-center text-red-500 font-semibold">
+                You are not authorized to view posts.
             </div>
         );
     }
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
+    const handleEdit = (post: Post) => {
+        setEditingPostId(post.id);
+        setEditorContent(post.content);
+    };
 
-        const res = await fetch("/api/dashboard/posts", {
-            method: "POST",
+    const handleSave = async (postId: string) => {
+        const res = await fetch(`/api/dashboard/posts/${postId}`, {
+            method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                title,
-                content,
-                tags: tags.split(",").map((t) => t.trim()),
-                published,
-            }),
+            body: JSON.stringify({ content: editorContent }),
         });
 
         const data = await res.json();
-        setLoading(false);
-
         if (res.ok) {
             alert(data.message);
-            router.push("/dashboard/posts");
+            setEditingPostId(null);
+            // refresh posts
+            const updated = posts.map((p) => (p.id === postId ? { ...p, content: editorContent } : p));
+            setPosts(updated);
         } else {
-            alert(data.message || "Failed to create post");
+            alert(data.message || "Failed to update post");
+        }
+    };
+
+    const handleDelete = async (postId: string) => {
+        if (!confirm("Are you sure you want to delete this post?")) return;
+
+        const res = await fetch(`/api/dashboard/posts/${postId}`, {
+            method: "DELETE",
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            alert(data.message);
+            setPosts(posts.filter((p) => p.id !== postId));
+        } else {
+            alert(data.message || "Failed to delete post");
         }
     };
 
     return (
-        <main className="flex min-h-screen items-center justify-center bg-background px-6 py-12">
-            <Card className="w-full max-w-2xl shadow-lg">
-                <CardContent className="p-6 space-y-6">
-                    <h1 className="text-2xl font-bold text-center">Create New Post</h1>
+        <main className="min-h-screen bg-background px-6 py-12">
+            <h1 className="text-2xl font-bold mb-6 text-center">Manage Posts</h1>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        {/* Title */}
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Title</label>
+            <div className="grid gap-6">
+                {posts.map((post) => (
+                    <Card key={post.id} className="shadow-md">
+                        <CardContent className="p-6 space-y-4">
                             <Input
                                 type="text"
-                                placeholder="Enter post title"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                required
+                                defaultValue={post.title}
+                                disabled
+                                className="font-bold text-lg"
                             />
-                        </div>
 
-                        {/* Content */}
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Content</label>
-                            <Textarea
-                                placeholder="Write your content here..."
-                                rows={6}
-                                value={content}
-                                onChange={(e) => setContent(e.target.value)}
-                                required
-                            />
-                        </div>
+                            {editingPostId === post.id ? (
+                                <RichTextEditor value={editorContent} onChange={setEditorContent} />
+                            ) : (
+                                <div
+                                    className="prose dark:prose-invert max-w-none"
+                                    dangerouslySetInnerHTML={{ __html: post.content }}
+                                />
+                            )}
 
-                        {/* Tags */}
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Tags</label>
-                            <Input
-                                type="text"
-                                placeholder="e.g. javascript, react, prisma"
-                                value={tags}
-                                onChange={(e) => setTags(e.target.value)}
-                            />
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Separate tags with commas.
-                            </p>
-                        </div>
-
-                        {/* Published Toggle */}
-                        <div className="flex items-center gap-3">
-                            <Switch
-                                checked={published}
-                                onCheckedChange={setPublished}
-                            />
-                            <span className="text-sm">Publish immediately</span>
-                        </div>
-
-                        {/* Submit Button */}
-                        <Button type="submit" className="w-full" disabled={loading}>
-                            {loading ? "Creating..." : "Create Post"}
-                        </Button>
-                    </form>
-                </CardContent>
-            </Card>
+                            <div className="flex gap-3 mt-4">
+                                {editingPostId === post.id ? (
+                                    <>
+                                        <Button onClick={() => handleSave(post.id)}>Save</Button>
+                                        <Button variant="secondary" onClick={() => setEditingPostId(null)}>
+                                            Cancel
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <>
+                                        {console.log('post', post)}
+                                        <Button onClick={() => handleEdit(post)}>Edit</Button>
+                                        <Button variant="destructive" onClick={() => handleDelete(post.id)}>
+                                            Delete
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
         </main>
     );
 }

@@ -16,12 +16,12 @@ datasource db {
 
 // prisma/schema.prisma (models section)
 model User {
-  id    String  @id @default(auto()) @map("_id") @db.ObjectId
-  email String  @unique
-  name  String?
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  email    String  @unique
+  name     String?
   password String?
-  role  String  @default("user || admin") // roles: user, admin
-  posts Post[]
+  role     String  @default("user || admin") // roles: user, admin
+  posts    Post[]
 }
 
 model Post {
@@ -29,6 +29,7 @@ model Post {
   title     String
   slug      String   @unique
   content   String?
+  image     String?
   tags      String[] // array of strings in MongoDB
   published Boolean  @default(false)
   author    User?    @relation(fields: [authorId], references: [id])

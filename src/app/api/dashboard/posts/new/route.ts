@@ -23,13 +23,14 @@ export async function POST(req: Request) {
         const session = await getAuthSession();
         await requireRole(session, ["admin", "writer"]);
 
-        const { title, content, tags, published } = await req.json();
-
+        const { title, content, tags, image, published } = await req.json();
+        console.log('body', { title, content, tags, image, published })
         const newPost = await prisma.post.create({
             data: {
                 title,
                 content,
                 tags,
+                image,
                 published,
                 slug: title.toLowerCase().replace(/\s+/g, "-"),
                 authorId: session?.user?.id,

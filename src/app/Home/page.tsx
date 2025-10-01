@@ -24,12 +24,12 @@ export default function LandingPage() {
                     Featured Highlights
                 </h2>
                 <HoverEffect items={[
-                    { title: "Web Development", description: "Latest trends and tutorials", link: "https://preview.themeforest.net/item/stories-personal-blog-html-template/full_screen_preview/28453702" },
-                    { title: "Design Inspiration", description: "Creative design ideas", link: "#" },
-                    { title: "Tech News", description: "Updates from the tech world", link: "#" },
-                    { title: "Programming Tips", description: "Improve your coding skills", link: "#" },
-                    { title: "Project Showcases", description: "See what others are building", link: "#" },
-                    { title: "Community Stories", description: "Experiences from developers", link: "#" },
+                    { id: 1, title: "Web Development", description: "Latest trends and tutorials", link: "https://preview.themeforest.net/item/stories-personal-blog-html-template/full_screen_preview/28453702" },
+                    { id: 2, title: "Design Inspiration", description: "Creative design ideas", link: "#" },
+                    { id: 3, title: "Tech News", description: "Updates from the tech world", link: "#" },
+                    { id: 4, title: "Programming Tips", description: "Improve your coding skills", link: "#" },
+                    { id: 5, title: "Project Showcases", description: "See what others are building", link: "#" },
+                    { id: 6, title: "Community Stories", description: "Experiences from developers", link: "#" },
                 ]} />
             </section>
 
