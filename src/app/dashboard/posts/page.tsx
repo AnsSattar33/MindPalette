@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-
+import { useAppDispatch, useAppSelector } from "@/hooks/reduxHooks";
+import { getPosts } from "@/lib/redux/postSlice";
 import dynamic from "next/dynamic";
 
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), {
@@ -23,24 +24,25 @@ interface Post {
 export default function PostsPage() {
     const { data: session, status } = useSession();
     const router = useRouter();
-
-    const [posts, setPosts] = useState<Post[]>([]);
+    const dispatch = useAppDispatch();
+    const { posts, loading, error } = useAppSelector((state) => state.posts);
     const [editingPostId, setEditingPostId] = useState<string | null>(null);
     const [editorContent, setEditorContent] = useState<string>("");
 
     useEffect(() => {
-        const fetchPosts = async () => {
-            const res = await fetch("/api/dashboard/posts/new");
-            const data = await res.json();
-            if (res.ok) {
-                setPosts(data.posts);
-            }
-        };
-        fetchPosts();
-    }, []);
+        dispatch(getPosts());
+    }, [dispatch]);
 
-    if (status === "loading") {
+    if (status === "loading" || loading) {
         return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+    }
+
+    if (error) {
+        return (
+            <div className="flex min-h-screen items-center justify-center text-red-500 font-semibold">
+                {error}
+            </div>
+        );
     }
 
     if (!session || (session.user.role !== "admin" && session.user.role !== "writer")) {
@@ -56,44 +58,44 @@ export default function PostsPage() {
         setEditorContent(post.content);
     };
 
-    const handleSave = async (postId: string) => {
-        const res = await fetch(`/api/dashboard/posts/${postId}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ content: editorContent }),
-        });
+    // const handleSave = async (postId: string) => {
+    //     const res = await fetch(`/api/dashboard/posts/${postId}`, {
+    //         method: "PATCH",
+    //         headers: { "Content-Type": "application/json" },
+    //         body: JSON.stringify({ content: editorContent }),
+    //     });
 
-        const data = await res.json();
-        if (res.ok) {
-            alert(data.message);
-            setEditingPostId(null);
-            // refresh posts
-            const updated = posts.map((p) => (p.id === postId ? { ...p, content: editorContent } : p));
-            setPosts(updated);
-        } else {
-            alert(data.message || "Failed to update post");
-        }
-    };
+    //     const data = await res.json();
+    //     if (res.ok) {
+    //         alert(data.message);
+    //         setEditingPostId(null);
+    //         // refresh posts
+    //         const updated = posts.map((p) => (p.id === postId ? { ...p, content: editorContent } : p));
+    //         setPosts(updated);
+    //     } else {
+    //         alert(data.message || "Failed to update post");
+    //     }
+    // };
 
-    const handleDelete = async (postId: string) => {
-        if (!confirm("Are you sure you want to delete this post?")) return;
+    // const handleDelete = async (postId: string) => {
+    //     if (!confirm("Are you sure you want to delete this post?")) return;
 
-        const res = await fetch(`/api/dashboard/posts/${postId}`, {
-            method: "DELETE",
-        });
+    //     const res = await fetch(`/api/dashboard/posts/${postId}`, {
+    //         method: "DELETE",
+    //     });
 
-        const data = await res.json();
-        if (res.ok) {
-            alert(data.message);
-            setPosts(posts.filter((p) => p.id !== postId));
-        } else {
-            alert(data.message || "Failed to delete post");
-        }
-    };
+    //     const data = await res.json();
+    //     if (res.ok) {
+    //         alert(data.message);
+    //         setPosts(posts.filter((p) => p.id !== postId));
+    //     } else {
+    //         alert(data.message || "Failed to delete post");
+    //     }
+    // };
 
     return (
         <main className="min-h-screen bg-background px-6 py-12">
-            <h1 className="text-2xl font-bold mb-6 text-center">Manage Posts</h1>
+            <h1 className="text-2xl font-bold mb-6 ">Manage Posts</h1>
 
             <div className="grid gap-6">
                 {posts.map((post) => (
@@ -118,7 +120,11 @@ export default function PostsPage() {
                             <div className="flex gap-3 mt-4">
                                 {editingPostId === post.id ? (
                                     <>
-                                        <Button onClick={() => handleSave(post.id)}>Save</Button>
+                                        <Button
+                                        // onClick={() => handleSave(post.id)}
+                                        >
+                                            Save
+                                        </Button>
                                         <Button variant="secondary" onClick={() => setEditingPostId(null)}>
                                             Cancel
                                         </Button>
@@ -127,7 +133,10 @@ export default function PostsPage() {
                                     <>
                                         {console.log('post', post)}
                                         <Button onClick={() => handleEdit(post)}>Edit</Button>
-                                        <Button variant="destructive" onClick={() => handleDelete(post.id)}>
+                                        <Button
+                                            variant="destructive"
+                                        // onClick={() => handleDelete(post.id)}
+                                        >
                                             Delete
                                         </Button>
                                     </>

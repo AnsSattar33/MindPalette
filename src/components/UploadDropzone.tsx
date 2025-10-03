@@ -5,12 +5,13 @@ import { Upload, Image as ImageIcon, File as FileIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useAppSelector } from "@/hooks/reduxHooks";
 
-export default function UploadDropzone({ setUploadedImage, imageUrl }: { setUploadedImage: (url: File) => void, imageUrl: string | null }) {
+export default function UploadDropzone({ setUploadedImage, setImagePreview }: { setUploadedImage: (url: File) => void, setImagePreview: (url: string | null) => void }) {
     const [dragActive, setDragActive] = useState(false);
     const [file, setFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
-
+    const previewPost = useAppSelector((state) => state.posts.previewPost);
     const handleDrag = (e: DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
@@ -46,6 +47,7 @@ export default function UploadDropzone({ setUploadedImage, imageUrl }: { setUplo
         if (f.type.startsWith("image/")) {
             const url = URL.createObjectURL(f);
             setPreview(url);
+            setImagePreview(url);
             // Pass the image URL to parent component
         } else {
             setPreview(null);
@@ -57,8 +59,10 @@ export default function UploadDropzone({ setUploadedImage, imageUrl }: { setUplo
         setPreview(null);
     };
 
+    console.log('previewPost in dropzone = ', typeof previewPost?.image, 'preview = ', preview)
+
     return (
-        <Card className="w-full max-w-lg mx-auto border-dashed border-2 rounded-2xl shadow-sm">
+        <Card className="w-full  mx-auto shadow-sm">
             <CardContent className="p-6">
                 <div
                     onDragEnter={handleDrag}
@@ -66,7 +70,7 @@ export default function UploadDropzone({ setUploadedImage, imageUrl }: { setUplo
                     onDragOver={handleDrag}
                     onDrop={handleDrop}
                     className={cn(
-                        "flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed p-10 transition relative",
+                        "flex flex-col items-center justify-center gap-4 rounded-xl  p-10 transition relative",
                         dragActive
                             ? "border-primary bg-primary/5"
                             : "border-muted-foreground/25 bg-muted/30"
@@ -74,10 +78,10 @@ export default function UploadDropzone({ setUploadedImage, imageUrl }: { setUplo
                 >
                     {file ? (
                         <div className="flex flex-col items-center gap-2">
-                            {preview ? (
-                                <div className="relative w-40 h-40">
+                            {preview || previewPost?.image ? (
+                                <div className="relative ">
                                     <img
-                                        src={preview}
+                                        src={typeof previewPost?.image === 'string' ? previewPost?.image : preview || ""}
                                         alt="Preview"
                                         className="object-cover rounded-xl w-full h-full"
                                     />
