@@ -1,17 +1,21 @@
 "use client";
 
-import { useState, DragEvent } from "react";
+import { useState, DragEvent, useEffect } from "react";
 import { Upload, Image as ImageIcon, File as FileIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useAppSelector } from "@/hooks/reduxHooks";
+import { useAppSelector, useAppDispatch } from "@/hooks/reduxHooks";
+import { isPostEditing, getPosts } from "@/lib/redux/postSlice";
 
-export default function UploadDropzone({ setUploadedImage, setImagePreview }: { setUploadedImage: (url: File) => void, setImagePreview: (url: string | null) => void }) {
+export default function UploadDropzone({ setUploadedImage, setImagePreview, postId }: { setUploadedImage: (url: File) => void, setImagePreview: (url: string | null) => void, postId: string | null }) {
     const [dragActive, setDragActive] = useState(false);
     const [file, setFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
     const previewPost = useAppSelector((state) => state.posts.previewPost);
+    const isEditing = useAppSelector((state) => state.posts.isEditing);
+    const posts = useAppSelector((state) => state.posts.posts);
+    const dispatch = useAppDispatch();
     const handleDrag = (e: DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
@@ -31,19 +35,17 @@ export default function UploadDropzone({ setUploadedImage, setImagePreview }: { 
         }
     };
 
-    console.log('file', file)
-
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        console.log('e.target.files', e.target.files)
         if (e.target.files && e.target.files[0]) {
             handleFile(e.target.files[0]);
-            setUploadedImage(e.target.files[0]); // Pass the image URL to parent component
+            // Pass the image URL to parent component
         }
     };
 
     const handleFile = (f: File) => {
-        console.log('e.target.files', f)
         setFile(f);
+        setUploadedImage(f);
+
         if (f.type.startsWith("image/")) {
             const url = URL.createObjectURL(f);
             setPreview(url);
@@ -54,13 +56,34 @@ export default function UploadDropzone({ setUploadedImage, setImagePreview }: { 
         }
     };
 
+    useEffect(() => {
+        dispatch(getPosts());
+    }, [dispatch]);
+
+    useEffect(() => {
+        if (previewPost?.imageFile) {
+            handleFile(previewPost.imageFile as File);
+            setPreview(URL.createObjectURL(previewPost.imageFile as File));
+        }
+    }, [previewPost]);
+
+    useEffect(() => {
+
+        if (isEditing === true) {
+            const post = posts.find((post) => post.id === postId);
+            if (post) {
+                setPreview(post?.image || "");
+            }
+        }
+    }, [isEditing]);
+
+
+
     const removeFile = () => {
         setFile(null);
         setPreview(null);
     };
-
-    console.log('previewPost in dropzone = ', typeof previewPost?.image, 'preview = ', preview)
-
+    console.log('preview from dropzone', preview)
     return (
         <Card className="w-full  mx-auto shadow-sm">
             <CardContent className="p-6">
@@ -81,7 +104,7 @@ export default function UploadDropzone({ setUploadedImage, setImagePreview }: { 
                             {preview || previewPost?.image ? (
                                 <div className="relative ">
                                     <img
-                                        src={typeof previewPost?.image === 'string' ? previewPost?.image : preview || ""}
+                                        src={preview as string || (previewPost?.image as string)}
                                         alt="Preview"
                                         className="object-cover rounded-xl w-full h-full"
                                     />

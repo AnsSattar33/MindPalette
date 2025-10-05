@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAppDispatch, useAppSelector } from "@/hooks/reduxHooks";
-import { getPosts } from "@/lib/redux/postSlice";
+import { getPosts, isPostEditing } from "@/lib/redux/postSlice";
 import dynamic from "next/dynamic";
 
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), {
@@ -19,6 +19,7 @@ interface Post {
     content: string;
     tags: string[];
     published: boolean;
+    description?: string | null;
 }
 
 export default function PostsPage() {
@@ -54,8 +55,11 @@ export default function PostsPage() {
     }
 
     const handleEdit = (post: Post) => {
-        setEditingPostId(post.id);
-        setEditorContent(post.content);
+
+        dispatch(isPostEditing(true));
+        router.push(`/dashboard/createpost?id=${post.id}`);
+        // setEditingPostId(post.id);
+        // setEditorContent(post.content);
     };
 
     // const handleSave = async (postId: string) => {
@@ -97,9 +101,9 @@ export default function PostsPage() {
         <main className="min-h-screen bg-background px-6 py-12">
             <h1 className="text-2xl font-bold mb-6 ">Manage Posts</h1>
 
-            <div className="grid gap-6">
+            <div className="flex flex-wrap gap-6">
                 {posts.map((post) => (
-                    <Card key={post.id} className="shadow-md">
+                    <Card key={post.id} className="shadow-md w-1/4">
                         <CardContent className="p-6 space-y-4">
                             <Input
                                 type="text"
@@ -107,6 +111,17 @@ export default function PostsPage() {
                                 disabled
                                 className="font-bold text-lg"
                             />
+                            <Input
+                                type="text"
+                                defaultValue={post?.description ?? "No description"}
+                                disabled
+                                className="font-bold text-lg"
+                            />
+                            {
+                                post?.image && <div className="w-60 h-60 overflow-hidden rounded">
+                                    <img src={post?.image} alt={post.title} className="object-cover w-full h-full object-center" />
+                                </div>
+                            }
 
                             {editingPostId === post.id ? (
                                 <RichTextEditor value={editorContent} onChange={setEditorContent} />
@@ -131,7 +146,6 @@ export default function PostsPage() {
                                     </>
                                 ) : (
                                     <>
-                                        {console.log('post', post)}
                                         <Button onClick={() => handleEdit(post)}>Edit</Button>
                                         <Button
                                             variant="destructive"

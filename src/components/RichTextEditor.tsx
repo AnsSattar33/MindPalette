@@ -1,5 +1,5 @@
 "use client";
-
+import React, { useEffect } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Bold from "@tiptap/extension-bold";
@@ -43,6 +43,9 @@ interface RichTextEditorProps {
 }
 
 export default function RichTextEditor({ value, onChange }: RichTextEditorProps) {
+
+
+
     const editor = useEditor({
         extensions: [
             StarterKit.configure({ codeBlock: false }), // history already included
@@ -68,6 +71,12 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
             onChange(editor.getHTML());
         },
     });
+
+    useEffect(() => {
+        if (editor && value !== editor.getHTML()) {
+            editor.commands.setContent(value);
+        }
+    }, [value, editor]);
 
     if (!editor) return null;
 

@@ -4,8 +4,6 @@ import { useSelector } from "react-redux";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 const PreviewPage = () => {
     const previewPost = useSelector((state: any) => state.posts.previewPost);
-
-    console.log('previewPost', previewPost)
     return (
         <div className='flex justify-center items-center  p-4'>
             <Card className="w-1/4">

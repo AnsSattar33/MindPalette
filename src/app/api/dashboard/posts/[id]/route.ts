@@ -7,11 +7,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         const session = await getAuthSession();
         await requireRole(session, ["admin", "writer"]);
 
-        const { title, content, tags, published } = await req.json();
+        const { title, image, description, content, tags, published } = await req.json();
 
         const updated = await prisma.post.update({
             where: { id: params.id },
-            data: { title, content, tags, published },
+            data: { title, image, description, content, tags, published },
         });
 
         return NextResponse.json({ status: "success", message: "Post updated successfully", post: updated });
