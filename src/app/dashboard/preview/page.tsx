@@ -2,8 +2,11 @@
 import React from 'react'
 import { useSelector } from "react-redux";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useSession } from 'next-auth/react';
+import { Heart, MessageCircle, Repeat2, Share, Trash } from 'lucide-react';
 const PreviewPage = () => {
     const previewPost = useSelector((state: any) => state.posts.previewPost);
+    const { data: session } = useSession();
     return (
         <div className='flex justify-center items-center  p-4'>
             <Card className="w-1/4">
@@ -31,6 +34,26 @@ const PreviewPage = () => {
                                 </div>
                             </div>
                         )}
+                    </div>
+                    <hr className='my-8' />
+                    <div className='flex justify-between gap-2'>
+                        <div>
+                            <Heart />
+                        </div>
+                        <div>
+                            <MessageCircle />
+                        </div>
+                        <div>
+                            <Repeat2 />
+                        </div>
+                        <div>
+                            <Share />
+                        </div>
+                        <div>
+                            {
+                                session?.user?.role === 'admin' && (<Trash color='#ff0000' />)
+                            }
+                        </div>
                     </div>
                 </CardContent>
             </Card>

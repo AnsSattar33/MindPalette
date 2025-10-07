@@ -38,17 +38,13 @@ type PostsResponse = {
     posts: Post[];
 }
 
-type PostEditable = {
-    id: string;
-    isEditing: boolean;
-}
-
 interface PostState {
     posts: Post[];
     loading: boolean;
     error: string | null;
     previewPost?: PreviewPost | null;
     isEditing?: boolean;
+    Refresh: Boolean
 }
 
 interface CreatePostResponse {
@@ -59,12 +55,16 @@ interface CreatePostResponse {
     image?: string;
     published: boolean;
 }
+
+
+
 const initialState: PostState = {
     posts: [],
     loading: false,
     error: null,
     previewPost: null,
     isEditing: false,
+    Refresh: false
 };
 
 
@@ -85,6 +85,15 @@ export const savePost = createAsyncThunk<CreatePostResponse, Partial<Post>, { re
         return thunkAPI.rejectWithValue("An error occurred");
     }
 });
+
+export const deletePost = createAsyncThunk<{ id: string }, string, { rejectValue: string }>('posts/deletePost', async (id, thunkAPI) => {
+    try {
+        const response = await axios.delete(`/api/dashboard/posts/${id}`);
+        return response.data;
+    } catch (error) {
+        return thunkAPI.rejectWithValue("An error occurred");
+    }
+})
 
 const postSlice = createSlice({
     name: "posts",
@@ -123,6 +132,21 @@ const postSlice = createSlice({
         });
         builder.addCase(savePost.rejected, (state, action) => {
             state.loading = false;
+            state.error = action.payload as string;
+        });
+        builder.addCase(deletePost.pending, (state) => {
+            state.loading = true;
+            state.Refresh = true;
+            state.error = null;
+        });
+        builder.addCase(deletePost.fulfilled, (state, action) => {
+            state.loading = false;
+            state.Refresh = false;
+            state.error = null;
+        });
+        builder.addCase(deletePost.rejected, (state, action) => {
+            state.loading = false;
+            state.Refresh = false;
             state.error = action.payload as string;
         });
     }

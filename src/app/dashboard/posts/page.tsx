@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAppDispatch, useAppSelector } from "@/hooks/reduxHooks";
-import { getPosts, isPostEditing } from "@/lib/redux/postSlice";
+import { getPosts, isPostEditing, deletePost } from "@/lib/redux/postSlice";
 import dynamic from "next/dynamic";
 
 const RichTextEditor = dynamic(() => import("@/components/RichTextEditor"), {
@@ -27,12 +27,13 @@ export default function PostsPage() {
     const router = useRouter();
     const dispatch = useAppDispatch();
     const { posts, loading, error } = useAppSelector((state) => state.posts);
+    const { Refresh } = useAppSelector((state) => state.posts)
     const [editingPostId, setEditingPostId] = useState<string | null>(null);
     const [editorContent, setEditorContent] = useState<string>("");
 
     useEffect(() => {
         dispatch(getPosts());
-    }, [dispatch]);
+    }, [dispatch, Refresh]);
 
     if (status === "loading" || loading) {
         return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
@@ -58,8 +59,6 @@ export default function PostsPage() {
 
         dispatch(isPostEditing(true));
         router.push(`/dashboard/createpost?id=${post.id}`);
-        // setEditingPostId(post.id);
-        // setEditorContent(post.content);
     };
 
     // const handleSave = async (postId: string) => {
@@ -81,21 +80,11 @@ export default function PostsPage() {
     //     }
     // };
 
-    // const handleDelete = async (postId: string) => {
-    //     if (!confirm("Are you sure you want to delete this post?")) return;
+    const handleDelete = async (postId: string) => {
+        if (!confirm("Are you sure you want to delete this post?")) return;
 
-    //     const res = await fetch(`/api/dashboard/posts/${postId}`, {
-    //         method: "DELETE",
-    //     });
-
-    //     const data = await res.json();
-    //     if (res.ok) {
-    //         alert(data.message);
-    //         setPosts(posts.filter((p) => p.id !== postId));
-    //     } else {
-    //         alert(data.message || "Failed to delete post");
-    //     }
-    // };
+        dispatch(deletePost(postId));
+    };
 
     return (
         <main className="min-h-screen bg-background px-6 py-12">
@@ -149,6 +138,7 @@ export default function PostsPage() {
                                         <Button onClick={() => handleEdit(post)}>Edit</Button>
                                         <Button
                                             variant="destructive"
+                                            onClick={() => handleDelete(post.id)}
                                         // onClick={() => handleDelete(post.id)}
                                         >
                                             Delete

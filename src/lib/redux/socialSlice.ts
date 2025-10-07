@@ -1,0 +1,103 @@
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import axios from "axios";
+
+interface Comment {
+    id: string;
+    content: string;
+    authorId: string;
+    postId: string;
+    createdAt: string;
+    updatedAt: string;
+    author: {
+        id: string;
+        name: string;
+        email: string;
+        password?: string;
+        role: string;
+    };
+}
+
+interface SocialState {
+    comments: Comment[];
+    loading: boolean;
+    error: string | null;
+    refresh: boolean;
+}
+
+const initialState: SocialState = {
+    comments: [],
+    loading: false,
+    error: null,
+    refresh: false
+}
+
+
+export const getComments = createAsyncThunk<
+    Comment[],                // ✅ The return type (e.g. a single Comment)
+    string,                 // ✅ The argument type (postId)
+    { rejectValue: string } // ✅ The thunk API options
+>(
+    'comments/getComments',
+    async (id, thunkAPI) => {
+        try {
+            const response = await axios.get(`/api/dashboard/comments/${id}`);
+            const comments = response.data.comments
+            return comments as Comment[];
+        } catch (error) {
+            return thunkAPI.rejectWithValue('Network error');
+        }
+    }
+);
+
+
+
+export const createComment = createAsyncThunk<Comment, Partial<Comment>, { rejectValue: string }>('comments/createComment', async (commentData, thunkAPI) => {
+    try {
+        const response = await axios.post('/api/dashboard/comments', commentData);
+        return response.data as Comment
+    } catch (error) {
+        return thunkAPI.rejectWithValue("An error occurred");
+    }
+})
+
+
+export const socialSlice = createSlice({
+
+    name: "social",
+    initialState,
+    reducers: {
+        setRefresh: (state, action: PayloadAction<boolean>) => {
+            state.refresh = action.payload;
+        }
+    },
+    extraReducers: (builder) => {
+        builder.addCase(getComments.pending, (state) => {
+            state.loading = true;
+            state.error = null;
+        });
+        builder.addCase(getComments.fulfilled, (state, action) => {
+            state.comments = action.payload;
+            state.loading = false;
+            state.error = null;
+        });
+        builder.addCase(getComments.rejected, (state, action) => {
+            state.loading = false;
+            state.error = action.payload as string;
+        });
+        builder.addCase(createComment.pending, (state) => {
+            state.loading = true;
+            state.error = null;
+        });
+        builder.addCase(createComment.fulfilled, (state, action) => {
+            state.loading = false;
+            state.error = null;
+        });
+        builder.addCase(createComment.rejected, (state, action) => {
+            state.loading = false;
+            state.error = action.payload as string;
+        });
+    }
+})
+
+export const { setRefresh } = socialSlice.actions;
+export default socialSlice.reducer;

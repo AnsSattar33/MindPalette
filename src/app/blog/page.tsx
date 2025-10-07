@@ -1,17 +1,25 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { getPosts } from "@/lib/redux/postSlice";
 import { useAppDispatch, useAppSelector } from "@/hooks/reduxHooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Heart, MessageCircle, Repeat2, Share, Share2, Trash } from "lucide-react";
+import { getComments, createComment } from "@/lib/redux/socialSlice";
+import { Input } from "@/components/ui/input";
 
 const Blog = () => {
+    const [isCommentEditable, setIsCommentEditable] = useState<string>()
+    const [commentContent, setCommentContent] = useState<string>('')
+    const [isCommentSectionOpen, SetIsCommentSectionOpen] = useState<boolean>(false)
     const [currentPage, setCurrentPage] = useState(1);
     const postsPerPage = 6; // 👈 show only 4 posts per page
 
     const dispatch = useAppDispatch();
+    const { data: session } = useSession();
     const { posts, loading, error } = useAppSelector((state) => state.posts);
-
+    const { comments } = useAppSelector((state) => state.social);
     useEffect(() => {
         dispatch(getPosts());
     }, [dispatch]);
@@ -30,6 +38,21 @@ const Blog = () => {
     const handlePrev = () => {
         if (currentPage > 1) setCurrentPage((prev) => prev - 1);
     };
+
+    const handleMessages = async (id: string) => {
+        dispatch(getComments(id))
+        setIsCommentEditable(id)
+        SetIsCommentSectionOpen(true)
+    }
+
+    const HandleSendComment = async () => {
+
+        dispatch(createComment({ content: commentContent, postId: isCommentEditable, authorId: session?.user?.id }))
+        console.log({ comments })
+        setIsCommentEditable('')
+        setCommentContent('')
+        SetIsCommentSectionOpen(false)
+    }
 
     return (
         <div>
@@ -67,6 +90,61 @@ const Blog = () => {
                                 dangerouslySetInnerHTML={{ __html: post.content }}
                             />
                         </CardContent>
+                        <div className='flex justify-between gap-2 px-8'>
+                            <div>
+                                <Heart />
+                            </div>
+                            <div>
+                                <Button onClick={() => handleMessages(post?.id)}>
+                                    <MessageCircle />
+                                </Button>
+                            </div>
+                            <div>
+                                <Repeat2 />
+                            </div>
+                            <div>
+                                <Share />
+                            </div>
+                            {/* <div>
+                                <Trash color='#ff0000' />
+                            </div> */}
+                        </div>
+                        {
+                            isCommentSectionOpen && (
+                                <div>
+                                    {
+                                        isCommentEditable === post?.id &&
+                                        (
+                                            <div className="px-8">
+                                                <div className="flex items-center gap-2">
+                                                    <Input value={commentContent} onChange={(e) => setCommentContent(e.target.value)} placeholder="Comment..." />
+                                                    <Button onClick={HandleSendComment}>Send</Button>
+                                                </div>
+                                                <div>
+                                                    <div className="py-4">Comments: {comments?.length}</div>
+                                                </div>
+                                            </div>
+                                        )
+                                    }
+                                    {
+                                        comments &&
+                                        comments.map((comment: any) => {
+                                            if (comment.postId === post.id) {
+                                                return (
+                                                    <div key={comment.id} className="px-8">
+                                                        <div className="flex flex-col items-start gap-2">
+                                                            <p className="text-sm font-medium">{comment.user.name}</p>
+                                                            <p>{comment.content}</p>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            }
+                                        })
+                                    }
+                                </div>
+                            )
+                        }
+
                     </Card>
                 ))}
             </div>
