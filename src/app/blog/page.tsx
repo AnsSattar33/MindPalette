@@ -5,14 +5,21 @@ import { getPosts } from "@/lib/redux/postSlice";
 import { useAppDispatch, useAppSelector } from "@/hooks/reduxHooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, Repeat2, Share, Share2, Trash } from "lucide-react";
-import { getComments, createComment } from "@/lib/redux/socialSlice";
+import { Heart, MessageCircle, Pencil, Repeat2, Share, Share2, Trash } from "lucide-react";
+import { getComments, createComment, updateComment, likeComment } from "@/lib/redux/socialSlice";
 import { Input } from "@/components/ui/input";
+import DOMPurify from "dompurify"
+
+interface Comments {
+    id: string;
+    content: string;
+}
 
 const Blog = () => {
     const [isCommentEditable, setIsCommentEditable] = useState<string>()
     const [commentContent, setCommentContent] = useState<string>('')
     const [isCommentSectionOpen, SetIsCommentSectionOpen] = useState<boolean>(false)
+    const [isCommentEditableOpen, SetIsCommentEditableOpen] = useState<boolean>(false)
     const [currentPage, setCurrentPage] = useState(1);
     const postsPerPage = 6; // 👈 show only 4 posts per page
 
@@ -45,13 +52,31 @@ const Blog = () => {
         SetIsCommentSectionOpen(true)
     }
 
-    const HandleSendComment = async () => {
+    const HandleSendComment = async (comment?: Comments) => {
 
-        dispatch(createComment({ content: commentContent, postId: isCommentEditable, authorId: session?.user?.id }))
-        console.log({ comments })
+        if (isCommentEditableOpen) {
+            dispatch(updateComment({ content: commentContent, id: comment?.id }))
+        } else {
+            dispatch(createComment({ content: commentContent, postId: isCommentEditable, authorId: session?.user?.id }))
+        }
         setIsCommentEditable('')
         setCommentContent('')
         SetIsCommentSectionOpen(false)
+    }
+
+    const handleEdit = async (commentContent: string, postId: string) => {
+        setIsCommentEditable(postId)
+        setCommentContent(commentContent)
+
+        SetIsCommentEditableOpen(true)
+
+    }
+
+
+    const handleLike = async (postId: string) => {
+
+        dispatch(likeComment(postId))
+
     }
 
     return (
@@ -66,9 +91,9 @@ const Blog = () => {
             )}
 
             {/* Posts */}
-            <div className="flex flex-wrap justify-center items-start gap-8 p-4">
+            <div className="flex md:flex-wrap justify-center items-start gap-8 p-4">
                 {currentPosts.map((post: any) => (
-                    <Card key={post.id} className="w-1/4">
+                    <Card key={post.id} className="md:w-1/4">
                         <CardHeader>
                             <CardTitle className="text-2xl">{post.title}</CardTitle>
                             <p className="text-sm text-muted-foreground">
@@ -87,12 +112,14 @@ const Blog = () => {
                             )}
                             <div
                                 className="prose dark:prose-invert max-w-none"
-                                dangerouslySetInnerHTML={{ __html: post.content }}
+                                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post?.content) }}
                             />
                         </CardContent>
                         <div className='flex justify-between gap-2 px-8'>
                             <div>
-                                <Heart />
+                                <Button onClick={() => handleLike(post?.id)}>
+                                    <Heart />
+                                </Button>
                             </div>
                             <div>
                                 <Button onClick={() => handleMessages(post?.id)}>
@@ -118,7 +145,7 @@ const Blog = () => {
                                             <div className="px-8">
                                                 <div className="flex items-center gap-2">
                                                     <Input value={commentContent} onChange={(e) => setCommentContent(e.target.value)} placeholder="Comment..." />
-                                                    <Button onClick={HandleSendComment}>Send</Button>
+                                                    <Button onClick={() => HandleSendComment()}>Send</Button>
                                                 </div>
                                                 <div>
                                                     <div className="py-4">Comments: {comments?.length}</div>
@@ -126,21 +153,46 @@ const Blog = () => {
                                             </div>
                                         )
                                     }
-                                    {
-                                        comments &&
-                                        comments.map((comment: any) => {
-                                            if (comment.postId === post.id) {
-                                                return (
-                                                    <div key={comment.id} className="px-8">
-                                                        <div className="flex flex-col items-start gap-2">
-                                                            <p className="text-sm font-medium">{comment.user.name}</p>
-                                                            <p>{comment.content}</p>
+                                    {comments &&
+                                        comments
+                                            .filter((comment: any) => comment.postId === post.id)
+                                            .map((comment: any) => (
+                                                <div
+                                                    key={comment.id}
+                                                    className="mb-4 w-full rounded-2xl bg-gray-50 p-4 shadow-sm transition hover:shadow-md"
+                                                >
+                                                    <div className="flex items-start gap-3">
+                                                        {/* Avatar */}
+                                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 text-white font-semibold">
+                                                            {comment.user?.name?.charAt(0).toUpperCase() || "U"}
+                                                        </div>
+
+                                                        {/* Comment Content */}
+                                                        <div className="flex flex-col flex-1">
+                                                            <div className="flex items-center justify-between">
+                                                                <p className="text-sm font-semibold text-gray-800">
+                                                                    {comment.user?.name || "Unknown User"}
+                                                                </p>
+                                                                {/* Edit Icon */}
+                                                                <button
+                                                                    onClick={() => handleEdit(comment?.content, post?.id)}
+                                                                    className="text-gray-400 hover:text-indigo-500 transition"
+                                                                    title="Edit Comment"
+                                                                >
+                                                                    <Pencil size={16} />
+                                                                </button>
+                                                            </div>
+
+                                                            <p className="text-sm text-gray-600 mt-1">{comment.content}</p>
+
+                                                            {/* Optional Timestamp */}
+                                                            <p className="text-xs text-gray-400 mt-1">
+                                                                {new Date(comment.createdAt).toLocaleString()}
+                                                            </p>
                                                         </div>
                                                     </div>
-                                                )
-                                            }
-                                        })
-                                    }
+                                                </div>
+                                            ))}
                                 </div>
                             )
                         }

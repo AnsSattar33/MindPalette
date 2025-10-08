@@ -49,8 +49,6 @@ export const getComments = createAsyncThunk<
     }
 );
 
-
-
 export const createComment = createAsyncThunk<Comment, Partial<Comment>, { rejectValue: string }>('comments/createComment', async (commentData, thunkAPI) => {
     try {
         const response = await axios.post('/api/dashboard/comments', commentData);
@@ -60,6 +58,32 @@ export const createComment = createAsyncThunk<Comment, Partial<Comment>, { rejec
     }
 })
 
+export const deleteComment = createAsyncThunk<void, string, { rejectValue: string }>('comments/deleteComment', async (id, thunkAPI) => {
+    try {
+        const response = await axios.delete(`/api/dashboard/comments?id=${id}`);
+        return response.data as void
+    } catch (error) {
+        return thunkAPI.rejectWithValue("An error occurred");
+    }
+})
+
+export const updateComment = createAsyncThunk<Comment, Partial<Comment>, { rejectValue: string }>('comments/updateComment', async (commentData, thunkAPI) => {
+    try {
+        const response = await axios.put(`/api/dashboard/comments?id=${commentData.id}`, commentData);
+        return response.data as Comment
+    } catch (error) {
+        return thunkAPI.rejectWithValue("An error occurred");
+    }
+})
+
+export const likeComment = createAsyncThunk<Comment, string, { rejectValue: string }>('comments/likeComment', async (id, thunkAPI) => {
+    try {
+        const response = await axios.post(`/api/dashboard/comments/like?id=${id}`);
+        return response.data as Comment
+    } catch (error) {
+        return thunkAPI.rejectWithValue("An error occurred");
+    }
+})
 
 export const socialSlice = createSlice({
 
