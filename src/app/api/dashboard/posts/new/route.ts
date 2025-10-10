@@ -8,7 +8,7 @@ export async function GET() {
         await requireRole(session, ["admin", "writer"]);
 
         const posts = await prisma.post.findMany({
-            include: { author: true },
+            include: { author: true, Like: true, Comment: true, Share: true },
             orderBy: { createdAt: "desc" },
         });
 

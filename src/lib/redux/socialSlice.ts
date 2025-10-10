@@ -17,6 +17,12 @@ interface Comment {
     };
 }
 
+interface Like {
+    id: string;
+    userId: string;
+    postId: string;
+}
+
 interface SocialState {
     comments: Comment[];
     loading: boolean;
@@ -76,14 +82,22 @@ export const updateComment = createAsyncThunk<Comment, Partial<Comment>, { rejec
     }
 })
 
-export const likeComment = createAsyncThunk<Comment, string, { rejectValue: string }>('comments/likeComment', async (id, thunkAPI) => {
-    try {
-        const response = await axios.post(`/api/dashboard/comments/like?id=${id}`);
-        return response.data as Comment
-    } catch (error) {
-        return thunkAPI.rejectWithValue("An error occurred");
+export const likePost = createAsyncThunk<
+    Like,
+    { id: string; userId?: string },
+    { rejectValue: string }
+>(
+    'post/postLike',
+    async ({ id, userId }, thunkAPI) => {
+        try {
+            console.log("its running socialSlice =", id, "userId = ", userId)
+            const response = await axios.post(`/api/dashboard/like`, { id, userId });
+            return response.data as Like;
+        } catch (error) {
+            return thunkAPI.rejectWithValue('An error occurred');
+        }
     }
-})
+);
 
 export const socialSlice = createSlice({
 

@@ -10,6 +10,7 @@ import { setPostPreview, getPosts, savePost } from '@/lib/redux/postSlice'
 import { useAppDispatch, useAppSelector } from '@/hooks/reduxHooks'
 import { useRouter } from 'next/navigation'
 import { useSearchParams } from 'next/navigation'
+import axios from 'axios'
 
 const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), {
     ssr: false,
@@ -19,6 +20,7 @@ const CreatePost = () => {
 
     const [editorContent, setEditorContent] = React.useState<string>("")
     const [title, setTitle] = React.useState<string>("")
+    const [createPostByPrompt, setCreatePostByPrompt] = React.useState<string>("")
     const [description, setDescription] = React.useState<string>("")
     const [uploadedImage, setUploadedImage] = React.useState<File | null>(null)
     const [imagePreview, setImagePreview] = React.useState<string | null | Blob>("")
@@ -134,17 +136,49 @@ const CreatePost = () => {
         setTags([]);
         previewPost?.tags && previewPost?.tags.splice(0, previewPost?.tags.length);
     }
+
+    const checkModel = async () => {
+
+        if (!createPostByPrompt) return alert("Please enter a prompt")
+        const response = await axios.post('/api/generate', {
+            prompt: createPostByPrompt
+        });
+
+        const { title, description, content, tags } = response.data
+
+        setTitle(title || "");
+        setDescription(description || "");
+        setEditorContent(content || "");
+        setTags(tags || [])
+
+        console.log(response.data);
+    };
     return (
 
         <div className="">
             <div className='flex items-center justify-between'>
                 <h1 className="text-3xl font-bold mb-6">Create New Post</h1>
+
                 <Button onClick={handlePreview} variant={'default'}>Preview</Button>
             </div>
 
             <Card className="w-full border-none">
 
                 <CardContent className="p-6 space-y-6 border-none">
+
+                    <div className='flex items-center justify-between'>
+                        <div className='w-3/4'>
+                            <Input
+                                placeholder="Create Post by AI"
+                                className="h-12 rounded-xl text-lg"
+                                value={createPostByPrompt}
+                                onChange={(e) => setCreatePostByPrompt(e.target.value)}
+                            />
+                        </div>
+                        <div className='self-start'>
+                            <Button onClick={checkModel}>Create Post By AI</Button>
+                        </div>
+                    </div>
 
                     {/* Post Title */}
                     <Input
