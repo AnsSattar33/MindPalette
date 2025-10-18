@@ -99,6 +99,22 @@ export const likePost = createAsyncThunk<
     }
 );
 
+export const getLike = createAsyncThunk<
+    Like[],
+    string,
+    { rejectValue: string }
+>(
+    'post/getLike',
+    async (id, thunkAPI) => {
+        try {
+            const response = await axios.get(`/api/dashboard/like/${id}`);
+            return response.data as Like[];
+        } catch (error) {
+            return thunkAPI.rejectWithValue('An error occurred');
+        }
+    }
+);
+
 export const socialSlice = createSlice({
 
     name: "social",

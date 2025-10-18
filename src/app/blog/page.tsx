@@ -6,7 +6,7 @@ import { useAppDispatch, useAppSelector } from "@/hooks/reduxHooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Heart, MessageCircle, Pencil, Repeat2, Share, Share2, Trash } from "lucide-react";
-import { getComments, createComment, updateComment, likePost } from "@/lib/redux/socialSlice";
+import { getComments, createComment, updateComment, likePost, getLike } from "@/lib/redux/socialSlice";
 import { Input } from "@/components/ui/input";
 import DOMPurify from "dompurify"
 import axios from "axios";
