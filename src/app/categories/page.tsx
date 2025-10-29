@@ -193,7 +193,7 @@ export default function CategoriesPage() {
     setFilteredPosts(allPosts);
   };
 
-  const hasActiveFilters = searchTerm || selectedCategory;
+  const hasActiveFilters = Boolean(searchTerm || selectedCategory);
 
   if (loading) {
     return (

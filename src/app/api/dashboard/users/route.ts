@@ -96,7 +96,7 @@ export async function PATCH(req: Request) {
         }
 
         // Prevent admin from changing their own role
-        if (id === session.user.id) {
+        if (id === session?.user?.id) {
             return NextResponse.json(
                 { status: "error", message: "Cannot change your own role" },
                 { status: 400 }
@@ -153,7 +153,7 @@ export async function DELETE(req: NextRequest) {
         }
 
         // Prevent admin from deleting themselves
-        if (id === session.user.id) {
+        if (id === session?.user?.id) {
             return NextResponse.json(
                 { status: "error", message: "Cannot delete your own account" },
                 { status: 400 }

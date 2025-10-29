@@ -130,7 +130,7 @@ export async function GET() {
             recentActivity,
             topPosts,
             recentComments,
-            users: session.user.role === 'admin' ? users : undefined
+            users: session?.user?.role === 'admin' ? users : undefined
         });
 
     } catch (error: any) {

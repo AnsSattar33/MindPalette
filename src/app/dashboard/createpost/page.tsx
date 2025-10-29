@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from "framer-motion";
@@ -61,7 +61,7 @@ const categories = [
     "Other"
 ];
 
-export default function CreatePost() {
+function CreatePostContent() {
     const { data: session, status } = useSession();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -463,5 +463,20 @@ export default function CreatePost() {
                 </div>
             </form>
         </div>
+    );
+}
+
+export default function CreatePost() {
+    return (
+        <Suspense fallback={
+            <div className="flex min-h-screen items-center justify-center">
+                <div className="text-center">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+                    <p className="text-muted-foreground">Loading...</p>
+                </div>
+            </div>
+        }>
+            <CreatePostContent />
+        </Suspense>
     );
 }

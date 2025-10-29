@@ -82,6 +82,14 @@ export async function POST(req: Request) {
         const session = await getAuthSession();
         await requireRole(session, ["admin", "writer"]);
 
+        // Type assertion since requireRole throws if session is null
+        if (!session || !session.user) {
+            return NextResponse.json(
+                { status: "error", message: "Unauthorized" },
+                { status: 401 }
+            );
+        }
+
         const { content, postId } = await req.json();
         
         if (!content || !postId) {
@@ -134,6 +142,14 @@ export async function DELETE(req: NextRequest) {
     try {
         const session = await getAuthSession();
         await requireRole(session, ["admin", "writer"]);
+
+        // Type assertion since requireRole throws if session is null
+        if (!session || !session.user) {
+            return NextResponse.json(
+                { status: "error", message: "Unauthorized" },
+                { status: 401 }
+            );
+        }
 
         const url = new URL(req.url);
         const id = url.searchParams.get("id");
