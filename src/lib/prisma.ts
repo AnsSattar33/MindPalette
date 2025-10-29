@@ -1,5 +1,5 @@
 // src/lib/prisma.ts
-import { PrismaClient } from "@/generated/prisma";  // 👈 use your custom output path
+import { PrismaClient } from "../generated/prisma";
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
