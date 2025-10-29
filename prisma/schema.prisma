@@ -35,6 +35,7 @@ model Post {
   content     String?
   image       String?
   tags        String[] // array of strings in MongoDB
+  category    String?   // single category for the post
   published   Boolean   @default(false)
   author      User?     @relation(fields: [authorId], references: [id])
   authorId    String?   @db.ObjectId

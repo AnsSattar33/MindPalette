@@ -4,12 +4,15 @@ import React, { useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useOutsideClick } from "@/hooks/use-outside-click";
 
-export default function ExpandableCardDemoStandard() {
+export default function ExpandableCardDemoStandard({ posts }: { posts?: any[] }) {
   const [active, setActive] = useState<(typeof cards)[number] | boolean | null>(
     null
   );
   const ref = useRef<HTMLDivElement>(null);
   const id = useId();
+
+  // Use provided posts or fallback to default cards
+  const displayCards = posts && posts.length > 0 ? posts : cards;
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -125,7 +128,7 @@ export default function ExpandableCardDemoStandard() {
         ) : null}
       </AnimatePresence>
       <ul className="max-w-2xl mx-auto w-full gap-4">
-        {cards.map((card, index) => (
+        {displayCards.map((card, index) => (
           <motion.div
             layoutId={`card-${card.title}-${id}`}
             key={`card-${card.title}-${id}`}

@@ -1,260 +1,467 @@
-"use client"
-import React, { useEffect } from 'react'
+"use client";
 
-import dynamic from 'next/dynamic'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import UploadDropzone from '@/components/UploadDropzone'
-import { Card, CardContent } from '@/components/ui/card'
-import { setPostPreview, getPosts, savePost } from '@/lib/redux/postSlice'
-import { useAppDispatch, useAppSelector } from '@/hooks/reduxHooks'
-import { useRouter } from 'next/navigation'
-import { useSearchParams } from 'next/navigation'
-import axios from 'axios'
+import React, { useState, useEffect } from 'react';
+import { useSession } from "next-auth/react";
+import { useRouter, useSearchParams } from 'next/navigation';
+import { motion } from "framer-motion";
+import { 
+    Save, 
+    Eye, 
+    Upload, 
+    X, 
+    Plus, 
+    Tag, 
+    FileText, 
+    Image as ImageIcon,
+    AlertCircle,
+    CheckCircle,
+    Loader2
+} from "lucide-react";
+import dynamic from 'next/dynamic';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), {
     ssr: false,
-})
+});
 
-const CreatePost = () => {
+const categories = [
+    "Web Development",
+    "React",
+    "TypeScript",
+    "JavaScript",
+    "CSS",
+    "HTML",
+    "Node.js",
+    "Database",
+    "Authentication",
+    "Redux",
+    "Next.js",
+    "Vercel",
+    "Accessibility",
+    "UI/UX",
+    "Design",
+    "Tutorial",
+    "Tips & Tricks",
+    "News",
+    "Review",
+    "Other"
+];
 
-    const [editorContent, setEditorContent] = React.useState<string>("")
-    const [title, setTitle] = React.useState<string>("")
-    const [createPostByPrompt, setCreatePostByPrompt] = React.useState<string>("")
-    const [description, setDescription] = React.useState<string>("")
-    const [uploadedImage, setUploadedImage] = React.useState<File | null>(null)
-    const [imagePreview, setImagePreview] = React.useState<string | null | Blob>("")
-    const [tags, setTags] = React.useState<Array<string>>([])
-    const [input, setInput] = React.useState<string>("")
-    const dispatch = useAppDispatch();
-    const previewPost = useAppSelector((state) => state.posts.previewPost)
-    const { posts, loading, error } = useAppSelector((state) => state.posts)
-    const { isEditing } = useAppSelector((state) => state.posts)
+export default function CreatePost() {
+    const { data: session, status } = useSession();
     const router = useRouter();
     const searchParams = useSearchParams();
     const postId = searchParams.get('id');
 
-    useEffect(() => {
+    // Form state
+    const [title, setTitle] = useState("");
+    const [description, setDescription] = useState("");
+    const [content, setContent] = useState("");
+    const [category, setCategory] = useState("");
+    const [tags, setTags] = useState<string[]>([]);
+    const [tagInput, setTagInput] = useState("");
+    const [image, setImage] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [published, setPublished] = useState(false);
+    const [aiPrompt, setAiPrompt] = useState("");
 
-        dispatch(getPosts());
-    }, [dispatch]);
+    // UI state
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
 
+    // Check authentication
     useEffect(() => {
-        if (previewPost && isEditing !== true) {
-            setTitle(previewPost.title || "");
-            setDescription(previewPost.description || "");
-            setEditorContent(previewPost.content || "");
-            setTags(previewPost.tags || []);
-            setImagePreview(previewPost?.image || "");
-        } else if (isEditing === true) {
-            const post = posts.find((p) => p.id === postId);
-            if (post) {
-                setTitle(post.title || "");
-                setDescription(post.description || "");
-                setEditorContent(post.content || "");
-                setTags(post.tags || []);
-                setImagePreview(post?.image || "");
-            }
+        if (status === "loading") return;
+        if (!session || (session.user.role !== "admin" && session.user.role !== "writer")) {
+            router.push("/");
         }
+    }, [session, status, router]);
 
-    }, [previewPost])
+    const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            setImage(file);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                setImagePreview(e.target?.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
-    const handleImage = async () => {
-        if (!uploadedImage) return;
+    const removeImage = () => {
+        setImage(null);
+        setImagePreview(null);
+    };
 
-        const formData = new FormData();
-        formData.append('file', uploadedImage);
-
-        const res = await fetch('/api/imageupload', {
-            method: 'POST',
-            body: formData
-        })
-
-        const data = await res.json();
-        return data;
-    }
-
-    const handlePreview = () => {
-
-        dispatch(setPostPreview({
-            title: title,
-            content: editorContent,
-            description: description ?? "",
-            image: imagePreview ?? '',
-            imageFile: uploadedImage,
-            tags: tags,
-        }));
-
-        router.push('/dashboard/preview')
-    }
-
-    const HandleSavePost = async () => {
-
-        const imageData = await handleImage();
-
-        dispatch(savePost({
-            title: title,
-            content: editorContent,
-            description: description,
-            image: imageData.secure_url,
-            tags: tags,
-            published: true
-        }));
-
-        // const res = await fetch('/api/dashboard/posts/new', {
-        //     method: 'POST',
-        //     headers: {
-        //         'Content-Type': 'application/json',
-        //         'accept': 'application/json'
-        //     },
-        //     body: JSON.stringify({
-        //         title: title,
-        //         content: editorContent,
-        //         image: imageData.secure_url,
-        //         tags: tags,
-        //         published: true
-        //     })
-        // })
-        // const data = await res.json();
-    }
-
-    const handleTageInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
-
-        if (e.key === 'Enter' && input.trim() !== '') {
+    const handleTagInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && tagInput.trim() !== '') {
             e.preventDefault();
-            setTags([...tags, input.trim()]);
-            setInput('');
+            if (!tags.includes(tagInput.trim())) {
+                setTags([...tags, tagInput.trim()]);
+            }
+            setTagInput('');
         }
-    }
+    };
 
     const removeTag = (index: number) => {
         setTags(tags.filter((_, i) => i !== index));
-    }
-
-    const removeAllTags = () => {
-
-        setTags([]);
-        previewPost?.tags && previewPost?.tags.splice(0, previewPost?.tags.length);
-    }
-
-    const checkModel = async () => {
-
-        if (!createPostByPrompt) return alert("Please enter a prompt")
-        const response = await axios.post('/api/generate', {
-            prompt: createPostByPrompt
-        });
-
-        const { title, description, content, tags } = response.data
-
-        setTitle(title || "");
-        setDescription(description || "");
-        setEditorContent(content || "");
-        setTags(tags || [])
-
-        console.log(response.data);
     };
+
+    const clearAllTags = () => {
+        setTags([]);
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (!title.trim() || !content.trim()) {
+            setError("Title and content are required");
+            return;
+        }
+
+        setLoading(true);
+        setError("");
+        setSuccess("");
+
+        try {
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('content', content);
+            formData.append('description', description);
+            formData.append('category', category);
+            formData.append('tags', JSON.stringify(tags));
+            formData.append('published', published.toString());
+            
+            if (image) {
+                formData.append('image', image);
+            }
+
+            const response = await fetch('/api/dashboard/posts/new', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                setSuccess("Post created successfully!");
+                // Reset form
+                setTitle("");
+                setDescription("");
+                setContent("");
+                setCategory("");
+                setTags([]);
+                setImage(null);
+                setImagePreview(null);
+                setPublished(false);
+                
+                // Redirect to posts page after 2 seconds
+                setTimeout(() => {
+                    router.push('/dashboard/posts');
+                }, 2000);
+            } else {
+                setError(data.message || "Failed to create post");
+            }
+        } catch (error) {
+            console.error('Error creating post:', error);
+            setError("An error occurred while creating the post");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handlePreview = () => {
+        // Create a preview object and navigate to preview page
+        const previewData = {
+            title,
+            content,
+            description,
+            category,
+            tags,
+            image: imagePreview,
+            published
+        };
+        
+        // Store in sessionStorage for preview page
+        sessionStorage.setItem('postPreview', JSON.stringify(previewData));
+        router.push('/dashboard/preview');
+    };
+
+    if (status === "loading") {
+        return (
+            <div className="flex min-h-screen items-center justify-center">
+                <div className="text-center">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+                    <p className="text-muted-foreground">Loading...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!session || (session.user.role !== "admin" && session.user.role !== "writer")) {
+        return null;
+    }
+
     return (
-
-        <div className="">
-            <div className='flex items-center justify-between'>
-                <h1 className="text-3xl font-bold mb-6">Create New Post</h1>
-
-                <Button onClick={handlePreview} variant={'default'}>Preview</Button>
+        <div className="max-w-4xl mx-auto space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold">Create New Post</h1>
+                    <p className="text-muted-foreground">Write and publish your content</p>
+                </div>
+                <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={handlePreview}
+                        disabled={!title || !content}
+                    >
+                        <Eye className="w-4 h-4 mr-2" />
+                        Preview
+                    </Button>
+                </div>
             </div>
 
-            <Card className="w-full border-none">
+            {/* Alerts */}
+            {error && (
+                <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                </Alert>
+            )}
 
-                <CardContent className="p-6 space-y-6 border-none">
+            {success && (
+                <Alert className="border-green-200 bg-green-50">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-800">{success}</AlertDescription>
+                </Alert>
+            )}
 
-                    <div className='flex items-center justify-between'>
-                        <div className='w-3/4'>
-                            <Input
-                                placeholder="Create Post by AI"
-                                className="h-12 rounded-xl text-lg"
-                                value={createPostByPrompt}
-                                onChange={(e) => setCreatePostByPrompt(e.target.value)}
-                            />
-                        </div>
-                        <div className='self-start'>
-                            <Button onClick={checkModel}>Create Post By AI</Button>
-                        </div>
+            {/* Main Form */}
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Main Content */}
+                    <div className="lg:col-span-2 space-y-6">
+                        {/* Title */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <FileText className="w-5 h-5" />
+                                    Post Title
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Input
+                                    placeholder="Enter your post title..."
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    className="text-lg"
+                                    required
+                                />
+                            </CardContent>
+                        </Card>
+
+                        {/* Description */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Description</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Textarea
+                                    placeholder="Brief description of your post..."
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    rows={3}
+                                />
+                            </CardContent>
+                        </Card>
+
+                        {/* Content Editor */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Content</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <RichTextEditor
+                                    value={content}
+                                    onChange={setContent}
+                                />
+                            </CardContent>
+                        </Card>
                     </div>
 
-                    {/* Post Title */}
-                    <Input
-                        placeholder="Post Title"
-                        className="h-12 rounded-xl text-lg"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                    />
+                    {/* Sidebar */}
+                    <div className="space-y-6">
+                        {/* Publish Settings */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Publish Settings</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="published">Publish immediately</Label>
+                                    <Switch
+                                        id="published"
+                                        checked={published}
+                                        onCheckedChange={setPublished}
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
 
-                    {/* Post Description */}
-                    <Input
-                        placeholder="Post Description"
-                        className="h-12 rounded-xl"
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                    />
+                        {/* Category */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Category</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Select value={category} onValueChange={setCategory}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a category" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {categories.map((cat) => (
+                                            <SelectItem key={cat} value={cat}>
+                                                {cat}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </CardContent>
+                        </Card>
 
-                    {/* Image Upload */}
-                    <div className=" border-gray-300 rounded-xl p-6 text-center hover:border-primary transition">
-                        <UploadDropzone postId={postId} setUploadedImage={setUploadedImage} setImagePreview={setImagePreview} />
+                        {/* Image Upload */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <ImageIcon className="w-5 h-5" />
+                                    Featured Image
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {imagePreview ? (
+                                    <div className="relative">
+                                        <img
+                                            src={imagePreview}
+                                            alt="Preview"
+                                            className="w-full h-48 object-cover rounded-lg"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="destructive"
+                                            size="sm"
+                                            className="absolute top-2 right-2"
+                                            onClick={removeImage}
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+                                        <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                                        <Label htmlFor="image" className="cursor-pointer">
+                                            <span className="text-sm text-muted-foreground">
+                                                Click to upload image
+                                            </span>
+                                        </Label>
+                                        <Input
+                                            id="image"
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleImageUpload}
+                                            className="hidden"
+                                        />
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Tags */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Tag className="w-5 h-5" />
+                                    Tags
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <Input
+                                    placeholder="Add a tag and press Enter"
+                                    value={tagInput}
+                                    onChange={(e) => setTagInput(e.target.value)}
+                                    onKeyDown={handleTagInput}
+                                />
+                                
+                                {tags.length > 0 && (
+                                    <div className="space-y-2">
+                                        <div className="flex flex-wrap gap-2">
+                                            {tags.map((tag, index) => (
+                                                <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                                                    {tag}
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-auto p-0 ml-1"
+                                                        onClick={() => removeTag(index)}
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </Button>
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={clearAllTags}
+                                        >
+                                            Clear All
+                                        </Button>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
                     </div>
+                </div>
 
-                    {/* Rich Text Editor */}
-                    <div className="rounded-xl border-none p-3">
-
-                        <RichTextEditor
-                            value={editorContent}
-                            onChange={setEditorContent}
-                        />
-                    </div>
-
-                    {/* Tags */}
-                    <Input
-                        placeholder="Tags ...."
-                        className="h-12 rounded-xl"
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => { handleTageInput(e) }}
-                    />
-
-                    <div>
-
-                        {tags && tags.map((tag, index) => (
-                            <span
-                                key={index}
-                                className="inline-block bg-primary text-white rounded-full px-3 py-1 text-sm font-semibold mr-2"
-                            >
-                                {tag}
-                                <Button type='button' variant='ghost' size='icon' className='ml-2 p-0' onClick={() => { removeTag(index) }}>
-                                    x
-                                </Button>
-                            </span>
-                        ))}
-                        {
-                            tags.length > 0 && (
-                                <Button type='button' variant='ghost' size='icon' className='ml-2 p-0' onClick={removeAllTags}>
-                                    Clear All
-                                </Button>
-                            )
-                        }
-
-                    </div>
-
-                    {/* Submit Button */}
-                    <div className="flex justify-end">
-                        <Button
-                            onClick={HandleSavePost}
-                            className="px-6 py-2 rounded-xl text-lg shadow-md hover:shadow-lg transition"
-                        >
-                            Submit
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
+                {/* Submit Button */}
+                <div className="flex justify-end">
+                    <Button
+                        type="submit"
+                        disabled={loading || !title || !content}
+                        className="px-8"
+                    >
+                        {loading ? (
+                            <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Creating...
+                            </>
+                        ) : (
+                            <>
+                                <Save className="w-4 h-4 mr-2" />
+                                {published ? 'Publish Post' : 'Save as Draft'}
+                            </>
+                        )}
+                    </Button>
+                </div>
+            </form>
         </div>
-    )
+    );
 }
-
-export default CreatePost
