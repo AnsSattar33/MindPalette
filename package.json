@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "next dev --turbopack",
-    "prisma": "npx prisma db push && npx prisma generate",
+    "prisma": "npx prisma db push && npx prisma generate deploy",
     "build": "next build --turbopack",
-    "start": "next start",
-    "postinstall": "prisma generate"
+    "start": "next start"
   },
   "dependencies": {
     "@giscus/react": "^3.1.0",
