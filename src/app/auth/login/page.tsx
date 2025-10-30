@@ -26,7 +26,7 @@ export default function LoginPage() {
         });
 
         if (!res?.error) {
-            router.push("/admin");
+            router.push("/dashboard/overview");
         } else {
             alert("Invalid email or password");
         }
