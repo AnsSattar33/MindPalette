@@ -95,11 +95,11 @@ export async function GET() {
         // Calculate statistics
         const stats = {
             totalPosts: user.posts.length,
-            publishedPosts: user.posts.filter(post => post.published).length,
-            draftPosts: user.posts.filter(post => !post.published).length,
-            totalLikes: user.posts.reduce((sum, post) => sum + post.Like.length, 0),
-            totalComments: user.posts.reduce((sum, post) => sum + post.Comment.length, 0),
-            totalShares: user.posts.reduce((sum, post) => sum + post.Share.length, 0),
+            publishedPosts: user.posts.filter((post: any) => post.published).length,
+            draftPosts: user.posts.filter((post: any) => !post.published).length,
+            totalLikes: user.posts.reduce((sum: number, post: any) => sum + post.Like.length, 0),
+            totalComments: user.posts.reduce((sum: number, post: any) => sum + post.Comment.length, 0),
+            totalShares: user.posts.reduce((sum: number, post: any) => sum + post.Share.length, 0),
             likedPosts: user.Like.length,
             commentedPosts: user.Comment.length,
             sharedPosts: user.Share.length,
@@ -107,7 +107,7 @@ export async function GET() {
 
         // Get recent activity (last 10 activities)
         const recentActivity = [
-            ...user.posts.slice(0, 5).map(post => ({
+            ...user.posts.slice(0, 5).map((post: any) => ({
                 type: 'post',
                 action: post.published ? 'published' : 'created',
                 title: post.title,
@@ -115,7 +115,7 @@ export async function GET() {
                 id: post.id,
                 slug: post.slug
             })),
-            ...user.Like.slice(0, 3).map(like => ({
+            ...user.Like.slice(0, 3).map((like: any) => ({
                 type: 'like',
                 action: 'liked',
                 title: like.post.title,
@@ -123,7 +123,7 @@ export async function GET() {
                 id: like.post.id,
                 slug: like.post.slug
             })),
-            ...user.Comment.slice(0, 2).map(comment => ({
+            ...user.Comment.slice(0, 2).map((comment: any) => ({
                 type: 'comment',
                 action: 'commented on',
                 title: comment.post.title,
